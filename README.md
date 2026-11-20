@@ -15,8 +15,7 @@ Problem: **MP003 — Rooftop Solar Energy (Lucknow)**
 
 ## Working layout
 
-Each member has an ownership note in `team/`.  The shared deliverables are
-kept in the course-required locations:
+Each member works directly in the course-required locations:
 
 ```
 data/raw/                 # DVC-tracked source datasets (do not commit CSVs)
