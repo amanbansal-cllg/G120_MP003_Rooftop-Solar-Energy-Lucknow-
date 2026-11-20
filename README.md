@@ -19,7 +19,7 @@ panels.
 
 - [Overview](#overview)
 - [Team](#team)
-- [Project status](#project-status)
+<!-- - [Project status](#project-status) -->
 - [Pipeline](#pipeline)
 - [Repository structure](#repository-structure)
 - [Dataset](#dataset)
@@ -59,6 +59,7 @@ Full problem statement: [`PROBLEM.md`](PROBLEM.md). Course rules and marking:
 
 Hand-off order between roles: [`TEAM_OWNERSHIP.md`](TEAM_OWNERSHIP.md).
 
+<!--
 ## Project status
 
 | Stage | Scope | Owner | Status |
@@ -67,6 +68,7 @@ Hand-off order between roles: [`TEAM_OWNERSHIP.md`](TEAM_OWNERSHIP.md).
 | 2 | Training with MLflow tracking, 3+ runs, registered `@champion` model | Rahul | ⏳ In progress |
 | 3 | FastAPI service, Dockerfile, GitHub Actions CI, Kubernetes manifests, JSON logging | Alya, Aman | ⏳ In progress |
 | 4 | PSI drift, per-group MAE, retrain v2, promotion decision, holdout predictions | Aman, Rahul | 🔜 Planned |
+-->
 
 ## Pipeline
 
