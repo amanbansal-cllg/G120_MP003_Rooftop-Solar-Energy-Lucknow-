@@ -1,0 +1,35 @@
+# Project settings. Read with yaml.safe_load (see src/solar_mlops/config.py).
+data:
+  train: data/raw/train.csv
+  later: data/raw/later.csv
+  holdout: data/raw/holdout_features.csv
+  cleaned_train: data/processed/train_clean.csv
+
+columns:
+  id: record_id
+  date: date
+  target: energy_kwh
+  group: area
+  numeric:
+    - panel_area_m2
+    - sunshine_hours
+    - temp_c
+    - dust_days
+    - panel_age_yr
+    - cloud_cover_pct
+  categorical:
+    - roof_type
+    - area
+
+data_checks:
+  sentinel_candidates: [-1, -99, -999, 999, 9999]
+  sentinel_min_count: 5
+  unit_factors: [10, 12, 60, 100, 1000, 10000]
+  unit_ratio_min: 5
+  stuck_min_run_days: 7
+  leak_corr_threshold: 0.95
+  target_typo_factor: 10
+  target_typo_gap_ratio: 2.0
+
+reports:
+  data_checks: reports/data_checks.json

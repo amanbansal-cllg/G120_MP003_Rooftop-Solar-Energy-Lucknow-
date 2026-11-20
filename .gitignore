@@ -1,5 +1,8 @@
 # Source datasets are tracked through DVC metadata, not committed to Git.
 data/raw/*.csv
+# holdout_features.csv has no target and the handbook layout commits it directly
+!data/raw/holdout_features.csv
+data/processed/
 
 # Local experiment artifacts and environments
 mlruns/

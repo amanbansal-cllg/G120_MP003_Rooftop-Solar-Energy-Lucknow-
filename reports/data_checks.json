@@ -1,0 +1,37 @@
+{
+  "leaking_column": {
+    "present": false,
+    "column": null
+  },
+  "unit_mixup": {
+    "present": true,
+    "column": "panel_area_m2",
+    "group_value": "New Colony",
+    "factor": 10000
+  },
+  "sentinel_value": {
+    "present": true,
+    "column": "sunshine_hours",
+    "value": 999,
+    "count": 63
+  },
+  "duplicate_rows": {
+    "present": true,
+    "count": 32
+  },
+  "stuck_sensor": {
+    "present": false,
+    "column": null,
+    "start_date": null,
+    "end_date": null
+  },
+  "target_typos": {
+    "present": true,
+    "count": 13
+  },
+  "spelling_variants": {
+    "present": true,
+    "column": "roof_type",
+    "true_levels": 3
+  }
+}
