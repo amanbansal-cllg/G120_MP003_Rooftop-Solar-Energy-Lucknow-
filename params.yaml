@@ -1,4 +1,4 @@
-# Project settings. Read with yaml.safe_load (see src/solar_mlops/config.py).
+# Project settings. Read with yaml.safe_load (see src/solar_ml/config.py).
 data:
   train: data/raw/train.csv
   later: data/raw/later.csv
@@ -33,3 +33,36 @@ data_checks:
 
 reports:
   data_checks: reports/data_checks.json
+  findings: reports/findings.yaml
+
+# Stage 2: training v1 with MLflow (src/solar_ml/train.py)
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+  experiment_name: mp003-solar-energy
+  registered_model_name: mp003-solar-energy
+  champion_alias: champion
+
+model:
+  output_path: models/model.joblib
+  val_size: 0.2          # share of cleaned train.csv held back to compare settings
+  cv_folds: 5            # k-fold MAE on the 80% part, used to pick the best setting
+  random_state: 42
+  select_metric: cv_mae  # lower is better
+  # Every setting below becomes one MLflow run. The best one is refit on
+  # all of cleaned train.csv and registered as version 1 (v1, @champion).
+  candidates:
+    - name: ridge_a0.1
+      type: ridge
+      params: {alpha: 0.1}
+    - name: ridge_a1
+      type: ridge
+      params: {alpha: 1.0}
+    - name: ridge_a10
+      type: ridge
+      params: {alpha: 10.0}
+    - name: random_forest
+      type: random_forest
+      params: {n_estimators: 300, max_depth: 10, min_samples_leaf: 2}
+    - name: gradient_boosting
+      type: gradient_boosting
+      params: {n_estimators: 300, learning_rate: 0.05, max_depth: 3}
