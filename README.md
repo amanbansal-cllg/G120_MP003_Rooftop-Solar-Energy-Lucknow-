@@ -11,7 +11,8 @@ panels.
 ![pandas](https://img.shields.io/badge/pandas-2.2.3-150458)
 ![DVC](https://img.shields.io/badge/data-DVC-945DD6)
 ![pytest](https://img.shields.io/badge/tests-pytest-0A9EDC)
-![Stage](https://img.shields.io/badge/stage%201-complete-brightgreen)
+![MLflow](https://img.shields.io/badge/tracking-MLflow-0194E2)
+![Stage](https://img.shields.io/badge/stage%202-complete-brightgreen)
 
 ---
 
@@ -26,6 +27,7 @@ panels.
 - [Getting started](#getting-started)
 - [Data quality findings](#data-quality-findings)
 - [Cleaned-data contract](#cleaned-data-contract)
+- [Model training and MLflow](#model-training-and-mlflow)
 - [Configuration](#configuration)
 - [Testing](#testing)
 - [Service and deployment specification](#service-and-deployment-specification)
@@ -111,18 +113,26 @@ flowchart LR
 │       ├── __init__.py
 │       ├── config.py             # loads params.yaml and data files
 │       ├── data_checks.py        # detects the seven data problems
-│       └── cleaning.py           # fixes them, writes the cleaned dataset
+│       ├── cleaning.py           # fixes them, writes the cleaned dataset
+│       ├── model.py              # preprocessing + regressor pipeline
+│       ├── train.py              # MLflow runs, registers v1 as @champion
+│       └── evaluate.py           # MAE, MAE per area, model loading
 ├── tests/
 │   ├── conftest.py
-│   └── test_data_checks.py       # 6 tests, no CSVs needed
+│   ├── test_data_checks.py       # data checks and cleaning
+│   └── test_model.py             # pipeline, MAE and training logic
+├── mlflow.db                     # MLflow tracking + model registry (SQLite)
+├── models/
+│   └── model.joblib              # the @champion pipeline the API loads
+├── .github/workflows/ci.yml      # runs pytest on every push
 └── reports/
     ├── data_checks.json          # raw output of data_checks.py
+    ├── train_summary.json        # every candidate's scores and the chosen one
     └── findings.yaml             # the form read by the marking tool
 ```
 
 Still to come from later stages: `app/main.py`, `Dockerfile`,
-`.dockerignore`, `.github/workflows/ci.yml`, `k8s/deployment.yaml`,
-`k8s/service.yaml`, `mlflow.db`, `models/model.joblib` and
+`.dockerignore`, `k8s/deployment.yaml`, `k8s/service.yaml` and
 `predictions/holdout_predictions.csv`.
 
 ## Dataset
@@ -221,6 +231,37 @@ MLflow runs must log `data_sha256`, the SHA-256 of the original `train.csv`:
 `5c46ec426e4f50f0469d970dee5d671889d90f06b97538f99b5f0221c8f8c3a5`
 (`solar_ml.config.file_sha256()` computes it).
 
+## Model training and MLflow
+
+```bash
+python -m solar_ml.train        # run once; PYTHONPATH=src as above
+python -m solar_ml.evaluate     # MAE of models/model.joblib, overall and per area
+mlflow ui --backend-store-uri sqlite:///mlflow.db   # browse the runs
+```
+
+`train.py` cleans `train.csv`, holds back 20% of the cleaned rows, and logs one
+MLflow run per candidate setting in `params.yaml` to the experiment
+`mp003-solar-energy`. Each run logs `data_sha256`, `cv_mae` (5-fold MAE on the
+other 80%) and `mae_val` (MAE on the held-back 20%).
+
+| Run | Model | cv_mae (kWh) | mae_val (kWh) |
+| --- | --- | ---: | ---: |
+| `ridge_a0.1` | Ridge, alpha 0.1 | 1.425 | 1.555 |
+| **`ridge_a1`** | **Ridge, alpha 1.0** | **1.424** | **1.555** |
+| `ridge_a10` | Ridge, alpha 10 | 1.428 | 1.558 |
+| `random_forest` | 300 trees, depth 10 | 2.138 | 2.176 |
+| `gradient_boosting` | 300 trees, lr 0.05, depth 3 | 1.690 | 1.730 |
+
+The relationship is close to linear, so Ridge wins. The best setting is refit
+on all 1,000 cleaned rows as run `v1_ridge_a1`, registered as
+**`mp003-solar-energy` version 1** with the alias **`@champion`**, and saved to
+`models/model.joblib`. The run id is written to the `tracking` block of
+`reports/findings.yaml`. Version 2 is reserved for the Stage 4 retrain
+(`train.py` refuses to register again without `--force`).
+
+The pipeline scales the numeric columns and one-hot encodes `roof_type` and
+`area`, so the model takes the eight raw API fields directly.
+
 ## Configuration
 
 All settings live in [`params.yaml`](params.yaml) and are read with
@@ -231,10 +272,11 @@ All settings live in [`params.yaml`](params.yaml) and are read with
 | `data` | Paths to the raw, holdout and cleaned files |
 | `columns` | Id, date, target, group, numeric and categorical columns |
 | `data_checks` | Thresholds: sentinel candidates, unit factors, minimum stuck run, leak correlation, typo gap |
-| `reports` | Output path for the data-check results |
+| `reports` | Output paths for the data-check results and findings |
+| `mlflow` | Tracking URI, experiment, registered model name, champion alias |
+| `model` | Validation split, CV folds, seed, and the candidate settings |
 
-Later stages add their own sections (training, evaluation, monitoring) to the
-same file.
+Stage 4 adds a monitoring section to the same file.
 
 ## Testing
 
@@ -244,7 +286,9 @@ pytest -q
 
 The suite builds small synthetic datasets inside each test, so it runs without
 the CSVs (as CI requires). It covers all seven detectors, including the two
-problems absent from our data, and an end-to-end cleaning run.
+problems absent from our data, an end-to-end cleaning run, the model
+pipeline, the MAE helpers and candidate selection. GitHub Actions runs it on
+every push.
 
 ## Service and deployment specification
 
